@@ -12,3 +12,7 @@ wheels/
 # Data directories
 data-raw
 data-processed
+
+# Lightning
+lightning_logs/
+logs/
