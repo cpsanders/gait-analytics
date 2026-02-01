@@ -106,11 +106,39 @@ def add_future_speed_target(
     return df.with_columns(pl.col(speed_column).shift(-shift_samples).alias(target_speed_column))
 
 
+def add_smoothed_speed_target(
+    df: pl.DataFrame,
+    hz: int = 50,
+    window_size_sec: int = 2,
+    center: bool = True,
+    speed_column: str = "speed_mps",
+    target_speed_column: str | None = None,
+) -> pl.DataFrame:
+    """
+    Add a smothed speed target column, using a rolling mean over window_size_sec seconds.
+
+    When creating the speed target, we need to add smoothing to account for jitter/error in the speed measurements.
+
+    Args:
+        df: dataframe to be processed
+        hz: number of measurements per second
+        window_size_sec: window size in seconds for rolling mean
+        center: flag to center the rolling mean window
+    """
+    if target_speed_column is None:
+        target_speed_column = f"{speed_column}_target_smoothed"
+
+    return df.with_columns(
+        pl.col(speed_column).rolling_mean(window_size=window_size_sec*hz, center=center).alias(target_speed_column)
+    )
+
+
 def process_gait_data(
     df: pl.DataFrame,
-    lead_sec: int = 60,
+    smooth_target: int = 60,
     hz: int = 50,
-    rolling_mean_window: int = 5,
+    feature_rolling_mean_window: int = 5,
+    target_rolling_mean_window: int = 2,
     step_g_force_threshold: float = 1.2,
     cadence_window_sec: int = 3,
     speed_column: str = "speed_mps",
@@ -124,9 +152,9 @@ def process_gait_data(
 
     Args:
         df: input dataframe to process
-        lead_sec: the number of seconds to look in the future for the velocity target
         hz: measurement spec of the sensor
-        rolling_mean_window: row window size over which to calculate rolling means
+        feature_rolling_mean_window: row window size over which to calculate rolling means
+        target_rolling_mean_window_sec: window size in seconds for smoothing the target speed
         step_threshold: G-Force threshold for classification of a "step"
         cadence_window_sec: number of seconds over which to calculate the cadence window
         speed_column: column in the data recording speed
@@ -138,7 +166,7 @@ def process_gait_data(
     Returns:
         Processed dataframe.
     """
-    df = filter_stationary_timestamps(df, speed_column=speed_column)
+    # df = filter_stationary_timestamps(df, speed_column=speed_column)
 
     df = add_acceleration_magnitude(
         df,
@@ -157,24 +185,18 @@ def process_gait_data(
     df = add_smoothed_column(
         df,
         column_name=accel_magnitude_column,
-        rolling_mean_window=rolling_mean_window,
+        rolling_mean_window=feature_rolling_mean_window,
         center=True,
     )
 
-    target_speed_column = f"target_{speed_column}"
-    df = add_future_speed_target(
+    target_speed_column = f"target_{speed_column}_smoothed"
+    df = add_smoothed_speed_target(
         df,
-        lead_sec=lead_sec,
         hz=hz,
+        window_size_sec=target_rolling_mean_window,
+        center=True,
         speed_column=speed_column,
         target_speed_column=target_speed_column,
-    )
-
-    df = add_smoothed_column(
-        df,
-        column_name=target_speed_column,
-        rolling_mean_window=rolling_mean_window * hz,
-        center=True,
     )
 
     # Drop nulls created by the shift at the end of the file

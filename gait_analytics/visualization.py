@@ -24,7 +24,7 @@ def plot_data(
             "Raw Accelerometer (X, Y, Z)", 
             "Gait Intensity (Magnitude)",
             "Cadence (Steps per Minute)",
-            f"Velocity Trend (Lead: {lead_sec}s)"
+            f"Velocity Trend",
         )
     )
 
@@ -63,14 +63,14 @@ def plot_data(
         go.Scatter(y=df[speed_column], name="Current Speed (Raw)", opacity=0.3, line=dict(color="gray")),
         row=4, col=1
     )
-    fig.add_trace(
-        go.Scatter(y=df[target_speed_column], name="Target Speed (Raw)", opacity=0.3, line=dict(color="magenta")),
-        row=4, col=1
-    )
+    # fig.add_trace(
+    #     go.Scatter(y=df[target_speed_column], name="Target Speed (Raw)", opacity=0.3, line=dict(color="magenta")),
+    #     row=4, col=1
+    # )
     fig.add_trace(
         go.Scatter(
             y=df[target_speed_column_smoothed],
-            name=f"Smooth Target ({lead_sec}s Lead)", 
+            name=f"Smooth Target ",
             line=dict(color="#FF4500", width=3)
         ), 
         row=4, col=1
