@@ -1,0 +1,6 @@
+## Project Overview
+
+lately ive been getting into running. however, its hard to monitor your pace accurately and its annoying to have to glance at your apple watch or phone every couple minutes to make sure you're still on track. there are plenty of complex pacing technologies out there to solve this problem (built by Garmin/Apple) with fancy sensors and software. there are also a couple iOS applications out there to help monitor pacing. however, many of these current solutions rely heavily on real-time GPS data, which can often times be jittery and unreliable. i thought it would be cool to build a "digital coach" iOS app that gives you realtime pacing feedback in your headphones while you run. using only the sensors on my phone, this app will use ML to build a pace predictor model that learns a user's specific running signature. the deployed model will have no reliance on GPS data and will only use the phone's accelerometer readings as predictors. this way, you get a clean reliable signal no matter where you are. is it overcomplicated? maybe. is it a fun idea? yes.
+
+## Contributing
+this project manages dependencies with uv - the hottest and fastest new tool for python package management.
