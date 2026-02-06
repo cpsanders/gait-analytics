@@ -1,3 +1,4 @@
+import pathlib
 import polars as pl
 
 
@@ -133,25 +134,43 @@ def add_smoothed_speed_target(
     )
 
 
-def process_gait_data(
+def trim_n_seconds_from_start_and_end(
     df: pl.DataFrame,
-    smooth_target: int = 60,
+    n_seconds: int = 10,
+    hz: int = 50,
+) -> pl.DataFrame:
+    """
+    Trim n seconds of data from the start and end of the dataframe.
+
+    Args:
+        df: dataframe to be processed
+        n_seconds: number of seconds to trim from start and end
+        hz: number of measurements per second
+    """
+    n_rows_to_trim = n_seconds * hz
+    return df.slice(n_rows_to_trim, len(df) - 2 * n_rows_to_trim)
+
+
+def process_gait_data(
+    file_path: pathlib.Path,
     hz: int = 50,
     feature_rolling_mean_window: int = 5,
     target_rolling_mean_window: int = 2,
     step_g_force_threshold: float = 1.2,
     cadence_window_sec: int = 3,
+    n_seconds_to_trim: int = 10,
     speed_column: str = "speed_mps",
     accel_x_column: str = "accel_x",
     accel_y_column: str = "accel_y",
     accel_z_column: str = "accel_z",
     accel_magnitude_column: str = "accel_magnitude",
+    output_path: pathlib.Path | None = None,
 ) -> pl.DataFrame:
     """
     Process raw gait data.
 
     Args:
-        df: input dataframe to process
+        file_path: path to the raw data file
         hz: measurement spec of the sensor
         feature_rolling_mean_window: row window size over which to calculate rolling means
         target_rolling_mean_window_sec: window size in seconds for smoothing the target speed
@@ -162,11 +181,14 @@ def process_gait_data(
         accel_y_column: accelerometer y column
         accel_z_column: accelerometer z column
         accel_magnitude_column: acceleration magnitude column
+        output_path: path to save the processed data file
 
     Returns:
         Processed dataframe.
     """
-    # df = filter_stationary_timestamps(df, speed_column=speed_column)
+    df = pl.read_csv(file_path)
+
+    df = filter_stationary_timestamps(df, speed_column=speed_column)
 
     df = add_acceleration_magnitude(
         df,
@@ -199,5 +221,16 @@ def process_gait_data(
         target_speed_column=target_speed_column,
     )
 
+    df = trim_n_seconds_from_start_and_end(
+        df,
+        n_seconds=n_seconds_to_trim,
+        hz=hz,
+    )
+
     # Drop nulls created by the shift at the end of the file
-    return df.drop_nulls()
+    df = df.drop_nulls()
+
+    if output_path is not None:
+        df.write_parquet(output_path)
+
+    return df
